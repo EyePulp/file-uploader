@@ -30,10 +30,13 @@ qq.FileUploader = function(o){
         sizeLimit: 0,
         onSubmit: function(id, fileName){},
         onComplete: function(id, fileName, responseJSON){},
-
-        //
+        
+        // force every connection to use the iFrame upload - default to false
+        forceIframe: false,
+        // set the name of the upload field
+        uploadFieldName: 'qqfile',
+        
         // UI customizations
-
         template: '<div class="qq-uploader">' + 
                 '<div class="qq-upload-drop-area"><span>Drop files here to upload</span></div>' +
                 '<div class="qq-upload-button">Upload a file</div>' +
@@ -216,14 +219,15 @@ qq.FileUploader.prototype = {
     _createUploadHandler: function(){
         var self = this,
             handlerClass;        
-        
-        if(qq.UploadHandlerXhr.isSupported()){           
+
+        if(qq.UploadHandlerXhr.isSupported() && !this._options.forceIframe){           
             handlerClass = 'UploadHandlerXhr';                        
         } else {
             handlerClass = 'UploadHandlerForm';
         }
 
         var handler = new qq[handlerClass]({
+            uploadFieldName : this._options.uploadFieldName,  // pass through what to call the field
             action: this._options.action,            
             onProgress: function(id, fileName, loaded, total){
                 // is only called for xhr upload
@@ -598,7 +602,7 @@ qq.UploadHandlerForm.prototype = {
      * Returns id to use with upload, cancel
      **/    
     add: function(fileInput){
-        fileInput.setAttribute('name', 'qqfile');
+        fileInput.setAttribute('name', this._options.uploadFieldName);
         var id = 'qq-upload-handler-iframe' + qq.getUniqueId();       
         
         this._inputs[id] = fileInput;
@@ -832,7 +836,7 @@ qq.UploadHandlerXhr.prototype = {
         };
 
         // build query string
-        var queryString = '?qqfile=' + encodeURIComponent(name) + '&' + qq.obj2url(params);
+        var queryString = '?' + this._options.uploadFieldName + '=' + encodeURIComponent(name) + '&' + qq.obj2url(params);
 
         xhr.open("POST", this._options.action + queryString, true);
         xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
